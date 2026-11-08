@@ -3,7 +3,7 @@
 **Course:** WIX2002 Project Management  
 **Deliverable for:** Jira `EPM-23` · Gantt task `4.1` (test planning and defect log)  
 **Author:** WEI XIN — QA Engineer (M9)  
-**Version:** v0.2 (draft for review) · **Date:** 5 November 2026  
+**Version:** v0.3 (draft for review) · **Date:** 8 November 2026  
 **Reviewer:** Ng Yue Qhi (Team Leader)
 
 ---
@@ -46,7 +46,7 @@ Testing covers the six functional modules and the complete borrowing lifecycle i
 | Document type     | Test Strategy and Test Cases                                                                                                                              |
 | Related tasks     | Jira EPM-23; Gantt task 4.1                                                                                                                               |
 | Author            | WEI XIN — QA Engineer (M9)                                                                                                                                |
-| Version and date  | v0.2 draft / 5 November 2026                                                                                                                              |
+| Version and date  | v0.3 draft / 8 November 2026                                                                                                                              |
 | Reviewer          | Ng Yue Qhi (Team Leader)                                                                                                                                  |
 | Related documents | Project proposal; PM Group Assignment (WBS); EventPool Gantt chart; system design and database schema (Admin, Club, Resources, Events, BorrowingRequests) |
 
@@ -89,17 +89,19 @@ This chapter draws the boundary of the testing effort: which modules are tested,
 
 ### 3.2 Priority Scenario: the Borrowing State Machine
 
-A borrowing request in the system design can hold seven states, and every transition between them must behave correctly. Each transition below becomes at least one test case. The most important property to verify is that rejecting or cancelling a request always restores the available quantity.
+A borrowing request in the system design can hold seven states, and every transition between them must behave correctly. Each transition below becomes at least one test case. The property that matters most is that inventory only moves when it should: submitting a request or rejecting one changes nothing, approving moves units from available to reserved, and only cancelling an approved request or completing a return puts units back.
 
-| Current state             | Trigger                         | Next state                        |
-| ------------------------- | ------------------------------- | --------------------------------- |
-| Pending                   | Owner approves the request      | `Approved`                        |
-| Pending                   | Owner rejects the request       | `Rejected` (stock unchanged)      |
-| Approved                  | Borrower confirms collection    | `Borrowed` (stock locked)         |
-| Borrowed                  | Borrower initiates return       | `Return Pending`                  |
-| Return Pending            | Owner accepts the returned item | `Completed` (stock restored)      |
-| Pending / Approved        | Either party cancels            | `Cancelled` (stock released)      |
-| Borrowed / Return Pending | Return deadline passes          | `Overdue` (flagged, not blocking) |
+| Current state  | Trigger                            | Next state                                |
+| -------------- | ---------------------------------- | ----------------------------------------- |
+| Pending        | Owner approves the request         | `Approved` (available → reserved)         |
+| Pending        | Owner rejects the request          | `Rejected` (inventory untouched)          |
+| Pending        | Requesting club cancels            | `Cancelled` (inventory untouched)         |
+| Approved       | Owner marks the item as collected  | `Borrowed` (reserved → borrowed)          |
+| Approved       | Requesting club cancels            | `Cancelled` (reserved → available)        |
+| Borrowed       | Requesting club submits the return | `Return Pending` (inventory untouched)    |
+| Return Pending | Owner verifies the return          | `Completed` (usable quantity → available) |
+
+> Overdue is not a state. The system computes `isOverdue = currentDate > expectedReturnDate AND status = Borrowed` and returns it as a boolean, so it never has to be written to the database. Testing it means moving the clock or seeding a past return date, not triggering a transition.
 
 ### 3.3 Out of Scope
 
@@ -129,6 +131,7 @@ Testing is organised in four layers that move from the inside out and from the d
 
 **What it is.** Re-running the previously passed core tests after a bug fix or a new feature, to confirm that nothing that used to work has been broken.
 
+
 **How it is applied.** A core regression list of roughly 15 to 20 cases is maintained — club registration and login, search, borrowing, approval, return, and the dashboard figures. The full list is executed at the end of every sprint and again before final sign-off in week 12 (Gantt task 4.7), with the result of each run recorded.
 
 **Responsibility.** Executed by the QA Engineer; results are reported at the weekly team meeting.
@@ -147,9 +150,9 @@ Testing is carried out in a dedicated environment so that test data never mixes 
 
 | Item                     | Details                                                                                                    |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Test environment         | [To be confirmed: Firebase test project URL / local development URL]                                       |
+| Test environment         | To be confirmed. No deployed environment exists yet; the first testable build is expected in week 7. Until then, the local development server is used for prototype-level checks. |
 | Browsers                 | Chrome (primary), Safari (spot check)                                                                      |
-| Test data                | [To be confirmed: owner of the seed data — at least two test clubs and five resources in different states] |
+| Test data                | To be confirmed: the named owner of the seed data. Required minimum: two test clubs and five resources in different states. |
 | Task and defect tracking | Jira (EPM board) and `BUGS.md` in the GitHub repository                                                    |
 | Prototype validation     | Clickable Figma prototype, used to validate flow design before the corresponding feature is built          |
 | Evidence                 | Screenshot or short screen recording attached to every Major and Critical defect                           |
@@ -181,7 +184,7 @@ A test case is the smallest unit of test execution: one documented check that ei
 | TC-M1-02 | Search with no match shows an empty state | No listing contains the keyword | 1. Type "zzz" in the search field. 2. Submit the search. | An empty-state message is shown; no error page and no stack trace. | Medium |
 | TC-M3-01 | Borrowing request submitted normally | Two clubs registered; the resource is Available | 1. Open the resource. 2. Enter quantity, purpose and dates. 3. Submit. | The request is Pending, the owner is notified, and available quantity is unchanged. | **High** |
 | TC-M3-05 | Concurrent request locks the stock | `totalQuantity = 1` and the resource is Available | Two clubs submit a request for the same dates; the owner processes both. | Only one request can reach Borrowed; the second is refused or blocked with an "insufficient stock" message. | **High** |
-| TC-M3-07 | Rejection restores stock | A Pending request has already reserved 2 units | The owner rejects the request. | State becomes Rejected and `availableQuantity` increases by 2. | **High** |
+| TC-M3-07 | Cancelling an approved request releases stock | An Approved request holds 2 units: `availableQuantity = 1`, `reservedQuantity = 2` | The requesting club cancels the request. | State becomes Cancelled; `availableQuantity` returns to 3 and `reservedQuantity` to 0. | **High** |
 | TC-M5-02 | Stock restored after a return | A Borrowed record exists with quantity 2 | 1. The borrower initiates the return. 2. The owner accepts it. | The record becomes Completed and `availableQuantity` increases by 2. | **High** |
 
 ## 7. Defect Management
