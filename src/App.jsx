@@ -1,6 +1,13 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
+import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
+import LoginPage from './pages/borrower/LoginPage';
+import MarketplacePage from './pages/borrower/MarketplacePage';
+import ResourceDetailsPage from './pages/borrower/ResourceDetailsPage';
+import BorrowRequestPage from './pages/borrower/BorrowRequestPage';
+import MyRequestsPage from './pages/borrower/MyRequestsPage';
+import NotFoundPage from './pages/borrower/NotFoundPage';
 import './App.css';
 
 const ownerPages = [
@@ -41,11 +48,24 @@ function OwnerPlaceholder({ title }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/dashboard" element={<OwnerDashboardPage />} />
-      {ownerPages.map(({ path, title }) => (
-        <Route key={path} path={path} element={<OwnerPlaceholder title={title} />} />
-      ))}
+      <Route element={<Layout />}>
+        <Route path="/" element={<HomePage />} />
+
+        {/* Borrower pages (M5) */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/marketplace/:resourceId" element={<ResourceDetailsPage />} />
+        <Route path="/marketplace/:resourceId/request" element={<BorrowRequestPage />} />
+        <Route path="/requests" element={<MyRequestsPage />} />
+
+        {/* Owner pages (M6) */}
+        <Route path="/dashboard" element={<OwnerDashboardPage />} />
+        {ownerPages.map(({ path, title }) => (
+          <Route key={path} path={path} element={<OwnerPlaceholder title={title} />} />
+        ))}
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   );
 }

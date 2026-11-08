@@ -1,0 +1,23 @@
+/* Design tokens. Placeholder values until M3 confirms the design system (docs/design-system.md).
+   Change values here only - components must use these variables, never hard-coded colours. */
+:root {
+  --color-primary: #2f5fd0;
+  --color-primary-contrast: #ffffff;
+  --color-bg: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-text: #1b1f27;
+  --color-text-muted: #5b6472;
+  --color-border: #d9dde4;
+  --color-danger: #c62828;
+  --color-success: #2e7d32;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+
+  --radius: 8px;
+  --font-body: system-ui, sans-serif;
+  --container-width: 960px;
+}
