@@ -16,6 +16,7 @@ a { color: var(--color-primary); }
 .app-shell > main { flex: 1; }
 
 .container {
+  width: 100%; /* needed: inside the flex-column shell, margin auto would otherwise shrink it to content width */
   max-width: var(--container-width);
   margin: 0 auto;
   padding: var(--space-4);
