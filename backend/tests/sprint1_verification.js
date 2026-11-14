@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const API_KEY = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCuxj4pY_b0wDq298coBMXtVm-FdDrLRuQ';
+const API_KEY = process.env.FIREBASE_WEB_API_KEY;
 const TEST_PORT = 5055;
 const BASE_URL = `http://localhost:${TEST_PORT}/api`;
 
@@ -77,7 +77,7 @@ async function runTests() {
 
     // 1. BE-01 & BE-05: Admin Profile & Club Management
     console.log('\n--- Step 1: Admin Profile & Club Creation (BE-01, BE-05) ---');
-    
+
     // GET /api/admin/profile
     const adminProfileRes = await fetch(`${BASE_URL}/admin/profile`, {
       headers: { Authorization: `Bearer ${adminToken}` }
@@ -247,7 +247,7 @@ async function runTests() {
 
     // 4. Resource Image Upload & Validation (BE-03)
     console.log('\n--- Step 4: Resource Image Upload & Validation (BE-03) ---');
-    
+
     // Test invalid mime type (.txt) -> Expect 415 UNSUPPORTED_MEDIA_TYPE
     const textFormData = new FormData();
     textFormData.append('image', new Blob(['fake text content'], { type: 'text/plain' }), 'test.txt');
@@ -301,7 +301,7 @@ async function runTests() {
     // 5. Cross-Club Ownership Enforcement (BE-02)
     console.log('\n--- Step 5: Cross-Club Ownership Enforcement ---');
     const clubBToken = await getIdTokenWithPassword(clubBEmail, clubBPassword);
-    
+
     // Club B tries to update Club A's resource -> 403
     const clubBUpdateRes = await fetch(`${BASE_URL}/resources/${resourceId}`, {
       method: 'PATCH',
