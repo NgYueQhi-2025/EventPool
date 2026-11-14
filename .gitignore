@@ -25,3 +25,12 @@ dist-ssr
 
 # Course Reference PDFs
 *.pdf
+
+# Firebase & Environment
+serviceAccountKey.json
+*.env
+.env
+backend/serviceAccountKey.json
+backend/.env
+backend/uploads/
+uploads/
