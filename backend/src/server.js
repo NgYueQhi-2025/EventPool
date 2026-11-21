@@ -10,6 +10,7 @@ import clubRoutes from './routes/clubRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
 import { sendError, sendSuccess } from './utils/response.js';
+import borrowingRequestRoutes from './routes/borrowingRequestRoutes.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/resources', resourceRoutes);
+app.use('/api/borrowing-requests', borrowingRequestRoutes);
 
 // 404 handler for unmapped endpoints
 app.use((req, res) => {

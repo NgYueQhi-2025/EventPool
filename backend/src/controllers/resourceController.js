@@ -1,25 +1,6 @@
 import { db } from '../config/firebase.js';
 import { sendSuccess, sendError, formatTimestamp } from '../utils/response.js';
-
-/**
- * Computes resource status according to business logic:
- * - isTemporarilyUnavailable === true -> 'Unavailable'
- * - availableQuantity > 0 -> 'Available'
- * - reservedQuantity > 0 -> 'Reserved'
- * - else -> 'Borrowed'
- */
-export const computeResourceStatus = (resource) => {
-  if (resource.isTemporarilyUnavailable === true) {
-    return 'Unavailable';
-  }
-  if (Number(resource.availableQuantity) > 0) {
-    return 'Available';
-  }
-  if (Number(resource.reservedQuantity) > 0) {
-    return 'Reserved';
-  }
-  return 'Borrowed';
-};
+import { calculateResourceStatus } from '../utils/resourceStatus.js';
 
 /**
  * Helper to get the list of active club IDs to filter resources
@@ -88,7 +69,7 @@ export const createResource = async (req, res) => {
       updatedAt: now
     };
 
-    resourceData.status = computeResourceStatus(resourceData);
+  resourceData.status = calculateResourceStatus(resourceData);
 
     await resourceRef.set(resourceData);
 
@@ -130,7 +111,7 @@ export const getResources = async (req, res) => {
       if (!activeClubIds.has(item.clubId)) return;
 
       // Calculate live status dynamically
-      item.status = computeResourceStatus(item);
+      item.status = calculateResourceStatus(item);
 
       // Apply query filters
       if (category && item.category !== category) return;
@@ -190,7 +171,7 @@ export const searchResources = async (req, res) => {
       if (item.isArchived === true) return;
       if (!activeClubIds.has(item.clubId)) return;
 
-      item.status = computeResourceStatus(item);
+      item.status = calculateResourceStatus(item);
 
       // Search keyword matching
       if (queryTerm) {
@@ -252,7 +233,7 @@ export const getResourceById = async (req, res) => {
       resourceId: data.resourceId || docSnap.id,
       createdAt: formatTimestamp(data.createdAt),
       updatedAt: formatTimestamp(data.updatedAt),
-      status: computeResourceStatus(data)
+      status: calculateResourceStatus(data)
     };
 
     return sendSuccess(res, 'Resource details retrieved successfully', item);
@@ -337,7 +318,7 @@ export const updateResource = async (req, res) => {
     }
 
     const merged = { ...current, ...updates };
-    updates.status = computeResourceStatus(merged);
+    updates.status = calculateResourceStatus(merged);
 
     await actualRef.update(updates);
 
@@ -475,7 +456,7 @@ export const updateAvailability = async (req, res) => {
     }
 
     const merged = { ...current, ...updates };
-    updates.status = computeResourceStatus(merged);
+    updates.status = calculateResourceStatus(merged);
 
     await actualRef.update(updates);
 
