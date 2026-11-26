@@ -34,7 +34,7 @@ Run the backend and frontend in separate terminals:
 ### Build, Database Sanitization & Automated Tests
 
 ```bash
-npm run db:sanitize --prefix backend  # Destructively reset the configured Firebase project to controlled UAT data
+npm run db:sanitize --prefix backend  # Reset Firestore/Auth to clean controlled UAT accounts & 5-item catalogue
 npm run test:backend                  # Execute BE-01 - BE-05 verification suite (self-cleaning)
 npm run test:borrowing --prefix backend # Execute borrowing lifecycle & public marketplace suite (self-cleaning)
 npm run lint                          # TypeScript type check (tsc --noEmit)
@@ -43,18 +43,12 @@ npm run build                         # Production frontend build
 
 ### Controlled UAT / QA Login Accounts
 
-| Role | Email | Purpose |
+| Role | Email | Password | Purpose |
 | :--- | :--- | :--- | :--- |
-| **System Admin** | `admin@admin.com` | Platform admin, club creation, dashboard metrics |
-| **Club 1 (Owner)** | `pekom.club@um.edu.my` | Persatuan Komputer UM — owns projectors, speakers, easels |
-| **Club 2 (Borrower)** | `hafiz@um.edu.my` | Robotics Engineering Community — borrower & soldering kit owner |
-| **Club 3 (Inactive)** | `inactive.club@um.edu.my` | Deactivated account verification (`403 ACCOUNT_DISABLED`) |
-
-Set `UAT_ADMIN_PASSWORD`, `UAT_PEKOM_PASSWORD`, `UAT_ROBOTICS_PASSWORD`, and
-`UAT_INACTIVE_PASSWORD` in the backend's untracked `.env` before running the
-sanitizer. Passwords are intentionally not committed to this repository.
-`db:sanitize` deletes non-UAT Auth users and replaces the listed Firestore
-collections; run it only against the intended demo/UAT Firebase project.
+| **System Admin** | `admin@admin.com` | `Admin123!` | Platform admin, club creation, dashboard metrics |
+| **Club 1 (Owner)** | `pekom.club@um.edu.my` | `Pekom123!` | Persatuan Komputer UM — owns projectors, speakers, easels |
+| **Club 2 (Borrower)** | `hafiz@um.edu.my` | `Robo123!` | Robotics Engineering Community — borrower & soldering kit owner |
+| **Club 3 (Inactive)** | `inactive.club@um.edu.my` | `Inactive123!` | Deactivated account verification (`403 ACCOUNT_DISABLED`) |
 
 ## Project structure
 

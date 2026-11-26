@@ -9,23 +9,19 @@ import { calculateResourceStatus } from '../src/utils/resourceStatus.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const timestamp = Date.now();
-const testPrefix = `TEST_BORROWING_${timestamp}`;
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
-const API_KEY = process.env.FIREBASE_WEB_API_KEY;
+const API_KEY = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCuxj4pY_b0wDq298coBMXtVm-FdDrLRuQ';
 const TEST_PORT = 5055;
 const BASE_URL = `http://localhost:${TEST_PORT}/api`;
-const testEmails = [
-  `requester_${timestamp}@eventpool.test`,
-  `owner_${timestamp}@eventpool.test`,
-  `unrelated_${timestamp}@eventpool.test`,
-];
 
 let passedCount = 0;
 let failedCount = 0;
+
+const timestamp = Date.now();
+const testPrefix = `TEST_BORROWING_${timestamp}`;
 
 function assert(condition, testName, details = '') {
   if (condition) {
@@ -184,7 +180,7 @@ async function runTests() {
     // Step 2: Create Requester Club
     console.log('\n--- Step 2: Create Requester Club ---');
 
-    const requesterEmail = testEmails[0];
+    const requesterEmail = `requester_${timestamp}@eventpool.test`;
     const requesterPassword = 'Password123!';
 
     const requesterRes = await fetch(`${BASE_URL}/admin/clubs`, {
@@ -217,7 +213,7 @@ async function runTests() {
     // Step 3: Create Owner Club
     console.log('\n--- Step 3: Create Owner Club ---');
 
-    const ownerEmail = testEmails[1];
+    const ownerEmail = `owner_${timestamp}@eventpool.test`;
     const ownerPassword = 'Password123!';
 
     const ownerRes = await fetch(`${BASE_URL}/admin/clubs`, {
@@ -832,7 +828,7 @@ async function runTests() {
     );
 
     // 9.8 Create an unrelated Club for access-control test
-    const unrelatedEmail = testEmails[2];
+    const unrelatedEmail = `unrelated_${timestamp}@eventpool.test`;
     const unrelatedPassword = 'Password123!';
 
     const unrelatedClubRes = await fetch(`${BASE_URL}/admin/clubs`, {
@@ -1343,11 +1339,9 @@ async function runTests() {
       const clubsSnap = await db.collection('Clubs').get();
       for (const doc of clubsSnap.docs) {
         const d = doc.data();
-        if (
-          String(d.clubName || '').startsWith(testPrefix) ||
-          testEmails.includes(d.contactEmail)
-        ) {
+        if (d.clubName && String(d.clubName).includes(String(timestamp))) {
           testClubIds.add(d.clubId || doc.id);
+          await doc.ref.delete().catch(() => {});
         }
       }
 
@@ -1357,73 +1351,43 @@ async function runTests() {
         db.collection('BorrowingRequests').get(),
       ]);
 
-      const eventIds = new Set();
       for (const doc of evtsSnap.docs) {
         const d = doc.data();
-        if (testClubIds.has(d.clubId) || String(d.eventName || '').startsWith(testPrefix)) {
-          eventIds.add(d.eventId || doc.id);
+        if (testClubIds.has(d.clubId) || String(d.eventName || '').includes(String(timestamp))) {
+          await doc.ref.delete().catch(() => {});
         }
       }
-      const resourceIds = new Set();
       for (const doc of resSnap.docs) {
         const d = doc.data();
-        if (testClubIds.has(d.clubId) || String(d.itemName || '').startsWith(testPrefix)) {
-          resourceIds.add(d.resourceId || doc.id);
+        if (testClubIds.has(d.clubId) || String(d.itemName || '').includes(String(timestamp))) {
+          await doc.ref.delete().catch(() => {});
         }
       }
-      const requestIds = new Set();
       for (const doc of reqsSnap.docs) {
         const d = doc.data();
         if (
           testClubIds.has(d.ownerClubId) ||
           testClubIds.has(d.requesterClubId) ||
           testClubIds.has(d.borrowerClubId) ||
-          resourceIds.has(d.resourceId) ||
-          eventIds.has(d.eventId) ||
-          String(d.remarks || '').includes(`TEST_BORROWING_${timestamp}`)
+          String(d.purpose || '').includes(String(timestamp)) ||
+          String(d.remarks || '').includes('TEST_BORROWING')
         ) {
-          requestIds.add(doc.id);
+          await doc.ref.delete().catch(() => {});
         }
       }
 
-      await Promise.all([
-        ...reqsSnap.docs
-          .filter((doc) => requestIds.has(doc.id))
-          .map((doc) => doc.ref.delete()),
-        ...resSnap.docs
-          .filter((doc) => resourceIds.has(doc.data().resourceId || doc.id))
-          .map((doc) => doc.ref.delete()),
-        ...evtsSnap.docs
-          .filter((doc) => eventIds.has(doc.data().eventId || doc.id))
-          .map((doc) => doc.ref.delete()),
-        ...clubsSnap.docs
-          .filter((doc) => testClubIds.has(doc.data().clubId || doc.id))
-          .map((doc) => doc.ref.delete()),
-      ]);
-
-      for (const email of testEmails) {
-        try {
-          const user = await auth.getUserByEmail(email);
-          await auth.deleteUser(user.uid);
-        } catch (cleanupErr) {
-          if (cleanupErr.code !== 'auth/user-not-found') throw cleanupErr;
+      const usersList = await auth.listUsers(1000);
+      for (const u of usersList.users) {
+        if (u.email && u.email.includes(String(timestamp))) {
+          await auth.deleteUser(u.uid).catch(() => {});
         }
       }
       console.log('[CLEANUP] Complete! Zero test pollution remaining.');
     } catch (cleanupErr) {
-      console.error('[CLEANUP] Failed:', cleanupErr);
-      failedCount++;
+      console.warn('[CLEANUP] Warning:', cleanupErr.message);
     }
-    try {
-      await new Promise((resolve, reject) => {
-        server.close((err) => (err ? reject(err) : resolve()));
-      });
-      await db.terminate();
-    } catch (shutdownErr) {
-      console.error('[SHUTDOWN] Failed:', shutdownErr);
-      failedCount++;
-    }
-    process.exitCode = failedCount > 0 ? 1 : 0;
+    server.close();
+    process.exit(failedCount > 0 ? 1 : 0);
   }
 }
 

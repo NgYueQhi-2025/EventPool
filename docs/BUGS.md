@@ -30,8 +30,8 @@ confirmed fixes from issues that remain open.
 | --- | --- | --- | --- | --- | --- |
 | BUG-001 | Frontend does not persist full borrowing lifecycle actions | M3/M4/M8 | **Critical** | Open | M5/M6/M8 |
 | BUG-002 | Landing page and impact data use demo fixtures | M1/M6 | **Major** | Open | M5/M6 |
-| BUG-003 | Signed-out Marketplace is restricted by route guard | M1 | **Major** | **Fixed** | M1/M5 |
-| BUG-004 | Live Firebase contains test and duplicate records | Data | **Major** | In Progress | M7/M9 |
+| BUG-003 | Signed-out Marketplace is restricted by route guard | M1 | **Major** | Open | M1/M5 |
+| BUG-004 | Live Firebase contains test and duplicate records | Data | **Major** | Open | M7/M9 |
 | BUG-005 | My Club cannot reliably resolve a freshly signed-in real club | M4 | **Major** | Open | M6/M7 |
 | BUG-006 | Local borrowing actions can differ from Firestore | M3/M4/M8 | **Major** | Open | M5/M6/M8 |
 | BUG-007 | Demo club fixture records contain plaintext passwords | Data | Minor | Open | M5/M7 |
@@ -47,7 +47,7 @@ confirmed fixes from issues that remain open.
 
 - **Module:** M3 Borrowing Request, M4 My Club, M8 Lifecycle
 - **Severity:** Critical
-- **Status:** Fixed (Option A)
+- **Status:** Open
 - **Found:** 22 November 2026
 - **Assigned to:** M5, M6 and M8
 
@@ -134,17 +134,21 @@ to represent the same system.
 - **Found:** 20 November 2026
 - **Assigned to:** M1 and M5
 
-**Decision and implementation**
+**Actual result**
 
-Option A was selected. `marketplace`, `resource_detail`, and sustainability
-views are public in `src/context/viewAccess.ts`; read-only `GET /api/resources*`
-and `GET /api/clubs*` routes do not require authentication. Resource mutations
-remain authenticated and owner-checked.
+`marketplace` and `resource_detail` remain authenticated views in
+`src/context/viewAccess.ts`. Read-only resource routes are also behind
+`authenticate` in the backend.
 
-**Verification required**
+This prevents an anonymous visitor from browsing the catalogue and conflicts
+with public browsing requirements unless the product intentionally defines
+marketplace browsing as members-only.
 
-Confirm signed-out visitors can load the marketplace and resource details, and
-that write endpoints still reject unauthenticated requests.
+**Required decision/fix**
+
+- Option A: open read-only routes and browsing views to anonymous users.
+- Option B: document marketplace browsing as authenticated and update the
+  requirements to match.
 
 ---
 
@@ -152,7 +156,7 @@ that write endpoints still reject unauthenticated requests.
 
 - **Module:** Data and UAT environment
 - **Severity:** Major
-- **Status:** In Progress; demo-project sanitization must be run before UAT
+- **Status:** Open
 - **Found:** 22 November 2026
 - **Assigned to:** M7 and M9
 
@@ -161,17 +165,14 @@ that write endpoints still reject unauthenticated requests.
 The Marketplace currently shows records named
 `TEST_BORROWING_<timestamp>_RESOURCE`, plus duplicate club names.
 
-`backend/scripts/sanitize_dataset.js` replaces the catalogue and controlled
-accounts, deleting stale Auth users and documents in the relevant collections.
-`backend/tests/borrowing_request_test.js` now removes its generated records and
-accounts in `finally`, and fails the test run if cleanup fails.
+`backend/tests/borrowing_request_test.js` creates two clubs, a test event,
+test resources and borrowing records without a cleanup step.
 
-**Deployment/UAT action**
+**Required fix**
 
-Run `npm run db:sanitize --prefix backend` only with the intended demo/UAT
-Firebase credentials and the required UAT password environment variables.
-This script is destructive and replaces those collections; do not run it
-against a production project.
+Use a disposable Firebase test project or remove/quarantine test records from
+the demonstration project before UAT. Retain one controlled catalogue and
+one realistic club account set.
 
 ---
 

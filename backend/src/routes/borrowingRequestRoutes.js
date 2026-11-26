@@ -11,10 +11,6 @@ import {
   completeBorrowingRequest,
   markResourceBorrowed
 } from '../controllers/borrowingRequestController.js';
-import {
-  initiateReturn,
-  verifyReturn,
-} from '../controllers/borrowingController.js';
 
 import { authenticate, requireClub } from '../middlewares/auth.js';
 
@@ -34,7 +30,5 @@ router.patch('/:requestId/cancel', requireClub, cancelBorrowingRequest);
 router.patch('/:requestId/return', requireClub, submitResourceReturn);
 router.patch('/:requestId/complete', requireClub, completeBorrowingRequest);
 router.patch('/:requestId/borrow', requireClub, markResourceBorrowed);
-router.patch('/:requestId/initiate-return', requireClub, initiateReturn);
-router.post('/:requestId/return', requireClub, verifyReturn);
 
 export default router;
