@@ -20,6 +20,56 @@
       "collectionGroup": "BorrowingRequests",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "requesterClubId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BorrowingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerClubId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BorrowingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requesterClubId", "order": "ASCENDING" },
+        { "fieldPath": "resourceId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BorrowingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerClubId", "order": "ASCENDING" },
+        { "fieldPath": "resourceId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BorrowingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requesterClubId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "resourceId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BorrowingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerClubId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "resourceId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BorrowingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "resourceId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]

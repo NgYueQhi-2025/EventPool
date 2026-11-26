@@ -9,7 +9,6 @@ import adminRoutes from './routes/adminRoutes.js';
 import clubRoutes from './routes/clubRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
-import borrowingRoutes from './routes/borrowingRoutes.js';
 import { getSustainabilityMetrics } from './controllers/borrowingController.js';
 import { sendError, sendSuccess } from './utils/response.js';
 import borrowingRequestRoutes from './routes/borrowingRequestRoutes.js';

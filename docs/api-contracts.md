@@ -241,11 +241,21 @@ Pending ──[owner approve]──▶ Approved ──[owner borrow]──▶ Bo
 * **Access:** Borrower Club (`requireClub`)
 * **Behavior:** Transitions `Borrowed` $\rightarrow$ `Return Pending` and records `returnedDate`.
 
-### `POST /api/borrowing-requests/:requestId/return` *(also supports `PATCH`)*
+### `POST /api/borrowing-requests/:requestId/return`
 * **Access:** Owner Club (`requireClub`)
 * **Request Body:** `{ reusable (or usable), damaged, missing, returnCondition (optional) }`
 * **Validations:** `reusable + damaged + missing === quantity` (`400 INVALID_INPUT`).
 * **Transaction:** Transitions `Borrowed` / `Return Pending` $\rightarrow$ `Completed`; moves `reusable` to `availableQuantity`, subtracts `damaged + missing` from `totalQuantity`.
+
+The legacy `PATCH /api/borrowing-requests/:requestId/return` endpoint submits
+return information as the borrower and transitions `Borrowed` to `Return
+Pending`. `PATCH .../initiate-return` is also available for this transition.
+Owner verification is performed by the `POST .../return` endpoint.
+
+The UI's club list queries filter requests by `requesterClubId` or
+`ownerClubId`, optionally combined with `status` and/or `resourceId`.
+`firestore.indexes.json` defines the required two- and three-field composite
+indexes for these query combinations.
 
 ---
 

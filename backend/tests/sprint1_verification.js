@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
-const API_KEY = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCuxj4pY_b0wDq298coBMXtVm-FdDrLRuQ';
+const API_KEY = process.env.FIREBASE_WEB_API_KEY;
 const TEST_PORT = 5055;
 const BASE_URL = `http://localhost:${TEST_PORT}/api`;
 

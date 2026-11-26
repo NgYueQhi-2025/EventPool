@@ -1,5 +1,18 @@
 import { auth, db } from '../src/config/firebase.js';
 
+const accountPasswords = {
+  admin: process.env.UAT_ADMIN_PASSWORD,
+  pekom: process.env.UAT_PEKOM_PASSWORD,
+  robotics: process.env.UAT_ROBOTICS_PASSWORD,
+  inactive: process.env.UAT_INACTIVE_PASSWORD,
+};
+
+for (const [account, password] of Object.entries(accountPasswords)) {
+  if (!password) {
+    throw new Error(`UAT_${account.toUpperCase()}_PASSWORD must be configured before seeding accounts.`);
+  }
+}
+
 const toISODate = (offsetDays) => {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
@@ -59,7 +72,7 @@ async function run() {
   // 1. Ensure Controlled Account Set in Firebase Auth
   const adminUser = await upsertAuthUser({
     email: 'admin@admin.com',
-    password: 'Admin123!',
+    password: accountPasswords.admin,
     displayName: 'System Administrator',
     disabled: false,
     preferredUid: 'pmzzDZPXoPPJy12DFxXOdc932Bv1',
@@ -67,7 +80,7 @@ async function run() {
 
   const pekomUser = await upsertAuthUser({
     email: 'pekom.club@um.edu.my',
-    password: 'Pekom123!',
+    password: accountPasswords.pekom,
     displayName: 'Persatuan Komputer Universiti Malaya',
     disabled: false,
     preferredUid: 'v1ZZnLEfIQP2zFikAMGHOSHlh9d2',
@@ -75,7 +88,7 @@ async function run() {
 
   const roboUser = await upsertAuthUser({
     email: 'hafiz@um.edu.my',
-    password: 'Robo123!',
+    password: accountPasswords.robotics,
     displayName: 'Robotics Engineering Community',
     disabled: false,
     preferredUid: 'trbwOTe5MxaY9Exsb0ojhi2Xbb13',
@@ -83,7 +96,7 @@ async function run() {
 
   const inactiveUser = await upsertAuthUser({
     email: 'inactive.club@um.edu.my',
-    password: 'Inactive123!',
+    password: accountPasswords.inactive,
     displayName: 'Drama & Theater Society',
     disabled: true,
   });
@@ -91,15 +104,22 @@ async function run() {
   const keepUids = new Set([adminUser.uid, pekomUser.uid, roboUser.uid, inactiveUser.uid]);
 
   // Remove any leftover/polluted Auth accounts (e.g. club_a_1795*@eventpool.test, abc@example.com)
-  const listResult = await auth.listUsers(1000);
-  let deletedAuthCount = 0;
-  for (const u of listResult.users) {
-    if (!keepUids.has(u.uid)) {
-      await auth.deleteUser(u.uid);
-      deletedAuthCount++;
-      console.log(`  Deleted leftover Auth user: ${u.email || u.uid}`);
+  const usersToDelete = [];
+  let pageToken;
+  do {
+    const listResult = await auth.listUsers(1000, pageToken);
+    for (const u of listResult.users) {
+      if (!keepUids.has(u.uid)) {
+        usersToDelete.push(u);
+      }
     }
+    pageToken = listResult.pageToken;
+  } while (pageToken);
+  for (const u of usersToDelete) {
+    await auth.deleteUser(u.uid);
+    console.log(`  Deleted leftover Auth user: ${u.email || u.uid}`);
   }
+  const deletedAuthCount = usersToDelete.length;
   console.log(`[Sanitize] Auth Users: kept 4 controlled accounts, deleted ${deletedAuthCount} leftover users.\n`);
 
   const now = new Date().toISOString();
