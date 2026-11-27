@@ -9,6 +9,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import clubRoutes from './routes/clubRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import resourceRoutes from './routes/resourceRoutes.js';
+import borrowingRoutes from './routes/borrowingRoutes.js';
+import { getSustainabilityMetrics } from './controllers/borrowingController.js';
 import { sendError, sendSuccess } from './utils/response.js';
 import borrowingRequestRoutes from './routes/borrowingRequestRoutes.js';
 import { db } from './config/firebase.js';
@@ -20,10 +22,16 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
+
+// Trust reverse proxy headers (Render / Fly.io / Cloud Run) so req.protocol is accurate
+app.set('trust proxy', 1);
 
 // Enable CORS and body parsers
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+  : '*';
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -46,6 +54,7 @@ app.use('/api/clubs', clubRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/borrowing-requests', borrowingRequestRoutes);
+app.get('/api/sustainability', getSustainabilityMetrics);
 
 // Dev / Demo reset endpoint to reset Firestore to initial testing state
 app.post('/api/dev/reset-demo', async (req, res) => {
@@ -218,8 +227,9 @@ app.use((err, req, res, next) => {
   return sendError(res, err.message || 'Internal server error', err.code || 'INTERNAL_ERROR', status);
 });
 
-// Only listen when run directly (allows importing in tests if needed)
-if (process.env.NODE_ENV !== 'test') {
+// Only listen when run directly (allows importing in tests without port conflicts)
+const isEntryPoint = process.argv[1] && path.resolve(process.argv[1]) === __filename;
+if (isEntryPoint && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[EventPool API] Server running on port ${PORT}`);
     console.log(`[EventPool API] Base URL: http://localhost:${PORT}/api`);

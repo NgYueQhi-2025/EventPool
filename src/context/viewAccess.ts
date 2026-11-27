@@ -7,9 +7,9 @@ export const VIEW_ACCESS: Record<AppView, ViewAccess> = {
   home: 'public',
   clubs: 'public',
   club_detail: 'public',
-  // The resource and club APIs require a signed-in account
-  marketplace: 'authenticated',
-  resource_detail: 'authenticated',
+  // BUG-003 Option A: Marketplace catalogue and resource details are publicly browsable
+  marketplace: 'public',
+  resource_detail: 'public',
   sustainability: 'public',
   borrow_form: 'club',
   my_club: 'club',

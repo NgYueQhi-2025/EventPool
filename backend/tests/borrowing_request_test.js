@@ -1,13 +1,19 @@
 
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import app from '../src/server.js';
 import { auth, db } from '../src/config/firebase.js';
 import dotenv from 'dotenv';
 import { calculateResourceStatus } from '../src/utils/resourceStatus.js';
 
-dotenv.config({ path: '.env.example' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const API_KEY = process.env.FIREBASE_WEB_API_KEY;
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
+
+const API_KEY = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCuxj4pY_b0wDq298coBMXtVm-FdDrLRuQ';
 const TEST_PORT = 5055;
 const BASE_URL = `http://localhost:${TEST_PORT}/api`;
 
@@ -1323,20 +1329,66 @@ async function runTests() {
     console.log('\n==============================================');
     console.log(`RESULT: ${passedCount} PASSED, ${failedCount} FAILED`);
     console.log('==============================================\n');
-
-    server.close();
-
-    if (failedCount > 0) {
-      process.exitCode = 1;
-    }
-
   } catch (err) {
     console.error('\nFatal test error:', err);
+    failedCount++;
+  } finally {
+    console.log('[CLEANUP] Purging temporary TEST_BORROWING_* records and Auth users...');
+    try {
+      const testClubIds = new Set();
+      const clubsSnap = await db.collection('Clubs').get();
+      for (const doc of clubsSnap.docs) {
+        const d = doc.data();
+        if (d.clubName && String(d.clubName).includes(String(timestamp))) {
+          testClubIds.add(d.clubId || doc.id);
+          await doc.ref.delete().catch(() => {});
+        }
+      }
 
+      const [evtsSnap, resSnap, reqsSnap] = await Promise.all([
+        db.collection('Events').get(),
+        db.collection('Resources').get(),
+        db.collection('BorrowingRequests').get(),
+      ]);
+
+      for (const doc of evtsSnap.docs) {
+        const d = doc.data();
+        if (testClubIds.has(d.clubId) || String(d.eventName || '').includes(String(timestamp))) {
+          await doc.ref.delete().catch(() => {});
+        }
+      }
+      for (const doc of resSnap.docs) {
+        const d = doc.data();
+        if (testClubIds.has(d.clubId) || String(d.itemName || '').includes(String(timestamp))) {
+          await doc.ref.delete().catch(() => {});
+        }
+      }
+      for (const doc of reqsSnap.docs) {
+        const d = doc.data();
+        if (
+          testClubIds.has(d.ownerClubId) ||
+          testClubIds.has(d.requesterClubId) ||
+          testClubIds.has(d.borrowerClubId) ||
+          String(d.purpose || '').includes(String(timestamp)) ||
+          String(d.remarks || '').includes('TEST_BORROWING')
+        ) {
+          await doc.ref.delete().catch(() => {});
+        }
+      }
+
+      const usersList = await auth.listUsers(1000);
+      for (const u of usersList.users) {
+        if (u.email && u.email.includes(String(timestamp))) {
+          await auth.deleteUser(u.uid).catch(() => {});
+        }
+      }
+      console.log('[CLEANUP] Complete! Zero test pollution remaining.');
+    } catch (cleanupErr) {
+      console.warn('[CLEANUP] Warning:', cleanupErr.message);
+    }
     server.close();
-
-    process.exitCode = 1;
+    process.exit(failedCount > 0 ? 1 : 0);
   }
-  }
+}
 
 runTests();

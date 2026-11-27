@@ -67,6 +67,11 @@ async function runTests() {
   await new Promise((resolve) => server.listen(TEST_PORT, resolve));
   console.log(`[TEST RUNNER] In-memory server listening on ${BASE_URL}\n`);
 
+  const createdClubIds = [];
+  const createdEventIds = [];
+  const createdResourceIds = [];
+  const createdEmails = [];
+
   try {
     // 0. Locate Admin UID
     console.log('--- Step 0: Identify Admin Profile ---');
@@ -121,6 +126,8 @@ async function runTests() {
     const createClubABody = await createClubARes.json();
     assert(createClubARes.status === 201, 'POST /api/admin/clubs creates Club A with 201 Created');
     const clubAId = createClubABody.data?.clubId;
+    if (clubAId) createdClubIds.push(clubAId);
+    createdEmails.push(clubAEmail);
     assert(Boolean(clubAId), `Club A created with ID: ${clubAId}`);
 
     // Test duplicate email rejection (409)
@@ -161,6 +168,8 @@ async function runTests() {
     const createClubBBody = await createClubBRes.json();
     assert(createClubBRes.status === 201, 'POST /api/admin/clubs creates Club B with 201 Created');
     const clubBId = createClubBBody.data?.clubId;
+    if (clubBId) createdClubIds.push(clubBId);
+    createdEmails.push(clubBEmail);
 
     // 2. Club Login & Role Guard Verification
     console.log('\n--- Step 2: Club Login & Permissions (BE-01, BE-04) ---');
@@ -207,6 +216,7 @@ async function runTests() {
     });
     const createEventBody = await createEventRes.json();
     assert(createEventRes.status === 201, 'POST /api/events creates event with 201 Created');
+    if (createEventBody.data?.eventId) createdEventIds.push(createEventBody.data.eventId);
     assert(createEventBody.data?.clubId === clubAId, 'Event is automatically bound to Club A');
 
     // 3. Resource CRUD & Inventory Logic (BE-02)
@@ -231,6 +241,7 @@ async function runTests() {
     const createResourceBody = await createResourceRes.json();
     assert(createResourceRes.status === 201, 'POST /api/resources creates resource with 201 Created');
     const resourceId = createResourceBody.data?.resourceId;
+    if (resourceId) createdResourceIds.push(resourceId);
     assert(createResourceBody.data?.status === 'Available', 'Resource status initialized as Available');
     assert(createResourceBody.data?.availableQuantity === 15, 'Available quantity matches total quantity');
 
@@ -357,13 +368,29 @@ async function runTests() {
     console.log('\n============================================================');
     console.log(`TEST SUMMARY: ${passedCount} PASSED, ${failedCount} FAILED`);
     console.log('============================================================\n');
-
-    server.close();
-    process.exit(failedCount > 0 ? 1 : 0);
   } catch (err) {
     console.error('\nFatal test execution error:', err);
+    failedCount++;
+  } finally {
+    console.log('[CLEANUP] Removing temporary test records and accounts...');
+    for (const id of createdResourceIds) {
+      await db.collection('Resources').doc(id).delete().catch(() => {});
+    }
+    for (const id of createdEventIds) {
+      await db.collection('Events').doc(id).delete().catch(() => {});
+    }
+    for (const id of createdClubIds) {
+      await db.collection('Clubs').doc(id).delete().catch(() => {});
+    }
+    for (const email of createdEmails) {
+      try {
+        const u = await auth.getUserByEmail(email);
+        await auth.deleteUser(u.uid);
+      } catch {}
+    }
+    console.log('[CLEANUP] Done. Zero test pollution left behind.');
     server.close();
-    process.exit(1);
+    process.exit(failedCount > 0 ? 1 : 0);
   }
 }
 

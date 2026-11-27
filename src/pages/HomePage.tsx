@@ -315,7 +315,9 @@ export const HomePage: React.FC = () => {
                       <p className="text-xs text-[#4A554E] mt-0.5">
                         {currentUser.role === 'admin'
                           ? 'UM System Administrator'
-                          : `${userClub?.acronym} · ${userClub?.name}`}
+                          : userClub
+                            ? `${userClub.acronym} · ${userClub.name}`
+                            : currentUser.email}
                       </p>
                     </div>
                     <span className="w-10 h-10 rounded-xl bg-[#DCE7D8] text-[#2D4A35] flex items-center justify-center shrink-0">

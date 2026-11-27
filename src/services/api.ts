@@ -4,6 +4,23 @@
  */
 
 const API_BASE = '/api';
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
+function buildApiUrl(endpoint: string): string {
+  if (/^https?:\/\//i.test(endpoint)) return endpoint;
+  return `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+}
+
+export async function checkBackendHealth(): Promise<{ ok: boolean; status?: string }> {
+  try {
+    const res = await fetch(buildApiUrl('/api/health'));
+    if (!res.ok) return { ok: false };
+    const data = await res.json();
+    return { ok: true, status: data?.data?.status || 'healthy' };
+  } catch {
+    return { ok: false };
+  }
+}
 
 const AUTH_TOKEN_KEY = 'eventpool_jwt_token';
 const FIREBASE_WEB_API_KEY = import.meta.env?.VITE_FIREBASE_WEB_API_KEY || '';
@@ -38,9 +55,10 @@ export async function apiRequest<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = endpoint.startsWith('/api/')
+  const rawUrl = endpoint.startsWith('/api/')
     ? endpoint
     : `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const url = buildApiUrl(rawUrl);
   const headers = new Headers(options.headers);
 
   const token = getAuthToken();
@@ -183,11 +201,11 @@ class ApiService {
     return this.token || localStorage.getItem('eventpool_jwt_token');
   }
 
-  private async request<T = any>(
+  private async request<T = unknown>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = buildApiUrl(`${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`);
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),
     };

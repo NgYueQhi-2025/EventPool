@@ -4,11 +4,11 @@ import { authenticate } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-router.use(authenticate);
-
+// BUG-003 Option A: Public club directory reads
 router.get('/', getAllClubs);
 router.get('/:clubId', getClubById);
-router.patch('/:clubId', updateClub);
+
+// Protected update endpoint
+router.patch('/:clubId', authenticate, updateClub);
 
 export default router;
-

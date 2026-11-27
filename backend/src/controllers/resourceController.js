@@ -415,9 +415,14 @@ export const archiveResource = async (req, res) => {
 export const updateAvailability = async (req, res) => {
   try {
     const { resourceId } = req.params;
-    const { isTemporarilyUnavailable, remarks } = req.body;
+    const { isTemporarilyUnavailable, manualUnavailable, remarks } = req.body;
 
-    if (typeof isTemporarilyUnavailable !== 'boolean') {
+    const nextUnavailable =
+      typeof isTemporarilyUnavailable === 'boolean'
+        ? isTemporarilyUnavailable
+        : manualUnavailable;
+
+    if (typeof nextUnavailable !== 'boolean') {
       return sendError(res, 'isTemporarilyUnavailable must be a boolean', 'INVALID_INPUT', 400);
     }
 
@@ -442,12 +447,12 @@ export const updateAvailability = async (req, res) => {
     }
 
     // Cannot make an archived resource available
-    if (current.isArchived === true && isTemporarilyUnavailable === false) {
+    if (current.isArchived === true && nextUnavailable === false) {
       return sendError(res, 'Archived resource cannot be made available', 'RESOURCE_ARCHIVED', 409);
     }
 
     const updates = {
-      isTemporarilyUnavailable,
+      isTemporarilyUnavailable: nextUnavailable,
       updatedAt: new Date().toISOString()
     };
 
@@ -462,7 +467,7 @@ export const updateAvailability = async (req, res) => {
 
     return sendSuccess(res, 'Resource availability updated successfully', {
       resourceId,
-      isTemporarilyUnavailable,
+      isTemporarilyUnavailable: nextUnavailable,
       status: updates.status,
       remarks: updates.remarks !== undefined ? updates.remarks : current.remarks
     });
